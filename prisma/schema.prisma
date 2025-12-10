@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String         @id @default(cuid())
+  name       String
+  lastName   String
+  email      String         @unique
+  phone      String
+  password   String
+  role       Role
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  workerProfile WorkerProfile?
+  events     Event[]        @relation("HostEvents")
+  hires      Hire[]         @relation("UserHires")
+}
+
+model WorkerProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  age          Int
+  skills       String[]
+  experience   Int
+  pricePerHour Float
+  bio          String
+  images       String[]
+  rating       Float    @default(5)
+  availability Boolean  @default(true)
+  hires        Hire[]
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Event {
+  id            String   @id @default(cuid())
+  hostId        String
+  title         String
+  description   String
+  date          DateTime
+  address       String
+  eventType     String
+  requiredStaff Int
+  budget        Float
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  hires         Hire[]
+
+  host User @relation("HostEvents", fields: [hostId], references: [id], onDelete: Cascade)
+}
+
+model Hire {
+  id        String   @id @default(cuid())
+  eventId   String
+  hostId    String
+  workerId  String
+  status    HireStatus @default(pending)
+  message   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event  Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  host   User  @relation("UserHires", fields: [hostId], references: [id], onDelete: Cascade)
+  worker WorkerProfile @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([workerId])
+}
+
+enum Role {
+  host
+  worker
+}
+
+enum HireStatus {
+  pending
+  accepted
+  rejected
+  completed
+}
